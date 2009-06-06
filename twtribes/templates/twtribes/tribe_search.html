@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+
+	<title>Twitter Tribe: {{ tribe.name }} - Interest Terms</title>
+	
+</head>
+
+<body>
+    <div class='outermost'>
+        <h1>{{ tribe.name }}</h1>
+        <a href='{% url show_tribe tribe.slug %}'>View Tribe</a> - <a href='{% url show_tribe_terms tribe.slug %}'>Interest Terms</a>
+        <div class='status_list'>
+            <h2>Tribe Interest Terms:</h2>
+            <ul>
+                {% for s in results %}
+                <li>
+                    <ul>
+                        <li class='status'><p>{{s.text|safe}}</p><span class='date'>{{s.created_at_as_datetime|timesince}} ago</span></li>
+                        <li class='profile_image'><a href='http://www.twitter.com/{{s.from_user}}'><img width='48' src='{{s.profile_image_url}}'/></a></li>
+                        <li class='user'><a href='http://www.twitter.com/{{s.from_user}}'>@{{ s.from_user }}</a></li>
+                    </ul>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class='member_list'>
+            <h3>{{ tribe.name }} Member List</h3>
+            <ul>
+                {% for m in tribe.member_set.all  %}
+                    <li><a href='http://www.twitter.com/{{m.twitter_account}}'>@{{ m.twitter_account }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
+

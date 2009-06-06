@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+
+	<title>Twitter Tribe: {{ tribe.name }}</title>
+	
+</head>
+
+<body>
+    <div class='outermost'>
+        <h1>{{ tribe.name }}</h1>
+        <a href='{% url show_tribe tribe.slug %}'>View Tribe</a> - <a href='{% url show_tribe_terms tribe.slug %}'>Interest Terms</a>
+        <div class='status_list'>
+            <h2>Members' Status</h2>
+            <ul>
+                {% for s in status_list %}
+                <li>
+                    <ul>
+                        <li class='profile_image'><img src='{{s.user.profile_image_url}}'/></li>
+                        <li class='user'><a href='http://www.twitter.com/{{s.user.name}}'>@{{ s.user.screen_name }}</a> - {{s.user.name}}</li>
+                        <li class='status'>{{s.text}}</li>
+                        <li class='date'>{{s.created_at}}</li>
+                    </ul>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class='member_list'>
+            <h3>{{ tribe.name }} Member List</h3>
+            <ul>
+                {% for m in tribe.member_set.all  %}
+                    <li><a href='http://www.twitter.com/{{m.twitter_account}}'>@{{ m.twitter_account }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
