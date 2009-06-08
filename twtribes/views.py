@@ -131,11 +131,13 @@ def tribe(request, tribe_slug, tribe_template='twtribes/tribe.html', error_templ
     # using the username and password for a tribe allows for API rate limit lifting at Twitter    
     try:
         status_list = get_status_updates(tribe, members)
-        
         if request.GET and 'filter' in request.GET:
-            f = request.GET['filter'].upper()
-            status_list = [s for s in status_list if s.text.upper().find(f) > -1 or s.user.screen_name.upper().find(f) > -1]
-                        
+            f = request.GET['filter']
+            f_upper = f.upper()
+            status_list = [s for s in status_list if s.text.upper().find(f_upper) > -1 or s.user.screen_name.upper().find(f_upper) > -1]
+        else:
+            f = None
+                            
     except HTTPError, e:
         # an HTTPError means that the Twitter api returned an error, parse it and return it to an error template
         error = parse_twitter_http_error(e)
@@ -145,7 +147,7 @@ def tribe(request, tribe_slug, tribe_template='twtribes/tribe.html', error_templ
             context_instance=RequestContext(request))
     
     return render_to_response(tribe_template,
-        { 'tribe' : tribe, 'members' : members, 'status_list' : status_list }, 
+        { 'tribe' : tribe, 'members' : members, 'status_list' : status_list, 'filter' : f }, 
         context_instance=RequestContext(request))
         
 def tribe_search(request, tribe_slug, tribe_template='twtribes/tribe_search.html', error_template='twtribes/tribe_error.html'):
@@ -161,7 +163,10 @@ def tribe_search(request, tribe_slug, tribe_template='twtribes/tribe_search.html
         results = search_results.results
         if request.GET and 'filter' in request.GET:
             f = request.GET['filter']
-            results = [s for s in results if s.text.find(f) > -1 or s.user.from_user.upper().find(f) > -1]
+            f_upper = f.upper()
+            results = [s for s in results if s.text.upper().find(f_upper) > -1 or s.from_user.upper().find(f_upper) > -1]
+        else:
+            f = None
             
     except HTTPError, e:
         # an HTTPError means that the Twitter api returned an error, parse it and return it to an error template
@@ -172,5 +177,5 @@ def tribe_search(request, tribe_slug, tribe_template='twtribes/tribe_search.html
             context_instance=RequestContext(request))
 
     return render_to_response(tribe_template,
-        { 'tribe' : tribe, 'members' : members, 'search' : search_results, 'results' : results }, 
+        { 'tribe' : tribe, 'members' : members, 'search' : search_results, 'results' : results, 'filter' : f }, 
         context_instance=RequestContext(request))

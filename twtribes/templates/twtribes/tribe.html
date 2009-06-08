@@ -14,7 +14,7 @@
         <h1>{{ tribe.name }}</h1>
         <a href='{% url show_tribe tribe.slug %}'>View Tribe</a> - <a href='{% url show_tribe_terms tribe.slug %}'>Interest Terms</a>
         <form action="." method="get" accept-charset="utf-8">
-            <p><label for="filter">Filter Results:</label><input type="text" name="filter" value="" id=""><input type="submit" value="Continue &rarr;"></p>
+            <p><label for="filter">Filter Results:</label><input type="text" name="filter" value="{{filter}}" id=""><input type="submit" value="Continue &rarr;"></p>
         </form>
         <div class='status_list'>
             <h2>Members' Status</h2>
