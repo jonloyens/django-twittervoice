@@ -131,6 +131,10 @@ def tribe(request, tribe_slug, tribe_template='twtribes/tribe.html', error_templ
     # using the username and password for a tribe allows for API rate limit lifting at Twitter    
     try:
         status_list = get_status_updates(tribe, members)
+        
+        if request.GET and 'filter' in request.GET:
+            f = request.GET['filter'].upper()
+            status_list = [s for s in status_list if s.text.upper().find(f) > -1 or s.user.screen_name.upper().find(f) > -1]
                         
     except HTTPError, e:
         # an HTTPError means that the Twitter api returned an error, parse it and return it to an error template
@@ -154,6 +158,11 @@ def tribe_search(request, tribe_slug, tribe_template='twtribes/tribe_search.html
     # using the username and password for a tribe allows for API rate limit lifting at Twitter
     try:
         search_results = get_search_results(tribe)
+        results = search_results.results
+        if request.GET and 'filter' in request.GET:
+            f = request.GET['filter']
+            results = [s for s in results if s.text.find(f) > -1 or s.user.from_user.upper().find(f) > -1]
+            
     except HTTPError, e:
         # an HTTPError means that the Twitter api returned an error, parse it and return it to an error template
         error = parse_twitter_http_error(e)
@@ -163,5 +172,5 @@ def tribe_search(request, tribe_slug, tribe_template='twtribes/tribe_search.html
             context_instance=RequestContext(request))
 
     return render_to_response(tribe_template,
-        { 'tribe' : tribe, 'members' : members, 'search' : search_results, 'results' : search_results.results }, 
+        { 'tribe' : tribe, 'members' : members, 'search' : search_results, 'results' : results }, 
         context_instance=RequestContext(request))

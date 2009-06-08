@@ -13,6 +13,9 @@
     <div class='outermost'>
         <h1>{{ tribe.name }}</h1>
         <a href='{% url show_tribe tribe.slug %}'>View Tribe</a> - <a href='{% url show_tribe_terms tribe.slug %}'>Interest Terms</a>
+        <form action="." method="get" accept-charset="utf-8">
+            <p><label for="filter">Filter Results:</label><input type="text" name="filter" value="" id=""><input type="submit" value="Continue &rarr;"></p>
+        </form>
         <div class='status_list'>
             <h2>Members' Status</h2>
             <ul>
@@ -20,7 +23,7 @@
                 <li>
                     <ul>
                         <li class='profile_image'><img src='{{s.user.profile_image_url}}'/></li>
-                        <li class='user'><a href='http://www.twitter.com/{{s.user.name}}'>@{{ s.user.screen_name }}</a> - {{s.user.name}}</li>
+                        <li class='user'><a href='http://www.twitter.com/{{s.user.screen_name}}'>@{{ s.user.screen_name }}</a> - {{s.user.name}}</li>
                         <li class='status'>{{s.text}}</li>
                         <li class='date'>{{s.created_at}}</li>
                     </ul>
