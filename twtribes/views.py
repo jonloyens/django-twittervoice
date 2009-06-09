@@ -91,8 +91,8 @@ def get_status_updates(tribe, members, check_cache=True):
                 status_list.extend(api.GetUserTimeline(user=m.twitter_account, count=tribe.max_status))
             except HTTPError, e:
                 # watch for unknown user exceptions as we retrieve the status list
-                if e.code != 404:
-                    raise # reraise the exception if it's not an unknown user
+                if e.code != 404 and e.code != 401:
+                    raise # reraise the exception if it's not an unknown user or the user is protected
                     
         # sort the statuses 
         status_list.sort(status_sorter)
