@@ -1,4 +1,5 @@
 from django.db import models
+import re
 
 class Tribe(models.Model):
     """A group of twitter users with a common interest or purpose"""
@@ -33,3 +34,30 @@ class Member(models.Model):
 
     def __unicode__(self):
         return self.tribe.name + ": " + self.twitter_account
+
+class ExcludedUser(models.Model):
+    """Used to filter out results matching a particular twitter account"""
+    
+    twitter_account = models.CharField(max_length=255)
+    tribe = models.ForeignKey(Tribe)
+    
+    def __unicode__(self):
+        return self.tribe.name + ": " + self.twitter_account
+
+class ExcludedRegexp(models.Model):
+    """Used to filter out results matching a regular expression"""
+    
+    regexp = models.CharField(max_length=1024)
+    tribe = models.ForeignKey(Tribe)
+    enabled = models.BooleanField(default=True)
+    
+    def search(self, some_text):
+        # assuming that this will used python's built in cache of regexp compilations
+        if re.search(self.regexp, some_text, re.IGNORECASE):
+            return True
+        else:
+            return False
+    
+    def __unicode__(self):
+        return self.regexp
+

@@ -37,7 +37,7 @@ def get_api(tribe):
         api = twitterext.SearchApi()
     return api
 
-def get_search_results(tribe, check_cache=True):
+def get_search_results(tribe, check_cache=True, filter_results=True):
     """ This function is used to call the twitter api to seach for a tribe's interest terms
         either from a view or in a cronjob to cache the interest search in advance
         Note: there is also the utility function 'cache_search' that will prefetch all tribes status updates"""
@@ -50,10 +50,38 @@ def get_search_results(tribe, check_cache=True):
     if not search_results:
         api=get_api(tribe)
         search_results = api.Search(" OR ".join([t.term for t in tribe.interestterm_set.all()]))
+        
+        if filter_results:
+            search_results = filter_search_results(tribe, search_results)
+            
         cache.set(tribe.slug, search_results, tribe.update_interval)
 
     return search_results
 
+def filter_search_results(tribe, search_results):
+    """ Return the search results that are 'allowable': they don't match any of
+        the excluded filters. """
+    
+    new_results = []
+    # filter out excluded users
+    for result in search_results.results:
+        # check to see if this user is in the excluded accounts list
+        if not tribe.excludeduser_set.filter(twitter_account=result.from_user):
+            if matches_no_regexps(tribe, result.text):
+                new_results.append(result)
+
+    search_results.results = new_results
+
+    return search_results
+
+def matches_no_regexps(tribe, text_to_check):
+    """Returns True if this text doesn't match an enabled exclude
+       regular expressions"""
+    for regexp in tribe.excludedregexp_set.filter(enabled=True):
+        if regexp.search(text_to_check):
+            return False
+    return True    
+    
 def cache_search(slug=None):
     """ Function to be called in a cronjob to cache the search results for interest terms
         for all tribes or one tribe dependent on parameters
@@ -72,7 +100,7 @@ def cache_search(slug=None):
             error = parse_twitter_http_error(e)
             return error
             
-def get_status_updates(tribe, members, check_cache=True):
+def get_status_updates(tribe, members, check_cache=True, filter_results=True):
     """ This function is to be used to fetch all status updates for a particular tribe or in a cronjob 
         to cache tribe statuses in advance
         Note: there is also the utility function 'cache_tribes' that will prefetch all tribes status updates"""
@@ -94,6 +122,10 @@ def get_status_updates(tribe, members, check_cache=True):
                 if e.code != 404 and e.code != 401:
                     raise # reraise the exception if it's not an unknown user or the user is protected
                     
+        # filter out by regular expression
+        if filter_results:
+            status_list = [status for status in status_list if matches_no_regexps(tribe, status.text)]
+        
         # sort the statuses 
         status_list.sort(status_sorter)
         

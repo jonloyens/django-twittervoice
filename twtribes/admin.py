@@ -17,8 +17,15 @@ class InterestTermInlineAdmin(admin.TabularInline):
 class MemberInlineAdmin(admin.TabularInline):
     model = Member
 
+class ExcludedUserInlineAdmin(admin.TabularInline):
+    model=ExcludedUser
+    
+class ExcludedRegexpInlineAdmin(admin.TabularInline):
+    model=ExcludedRegexp
+    
 class TribeAdmin(admin.ModelAdmin):
     list_display = ('name',)
-    inlines = [ MemberInlineAdmin, InterestTermInlineAdmin ]
+    inlines = [ MemberInlineAdmin, InterestTermInlineAdmin,
+                ExcludedUserInlineAdmin, ExcludedRegexpInlineAdmin ]
 
 admin.site.register(Tribe, TribeAdmin)
