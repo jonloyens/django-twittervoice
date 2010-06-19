@@ -1,0 +1,43 @@
+Owner/Author: [http://www.loyens.org Jon Loyens]
+
+== Introduction ==
+TwitterVoice is a set of simple open source Django applications for working with [http://www.twitter.com Twitter] and sponsored by [http://www.bazaarvoice.com Bazaarvoice].
+
+The first application provided is called 'twtribes' and allows you to create Twitter 'tribes' or groups of twitter accounts.  A tribe view collates the 'n' most recent status entries of its members and displays them.  Additionally, tribes can define interest terms.  The application will search for these 'interest terms' (i.e. hashtags or others) using the Twitter search API and display these on a separate page.  This application would be suitable for creating a corporate Twitter user page for example.  You can see an example of this application running at [http://twitter.bazaarvoice.com]
+
+NOTE: There is no current stable release yet.
+
+== Features ==
+
+ * Add unlimited user accounts to a 'tribe'
+ * Add unlimited search terms to each 'tribe'
+ * Includes sample templates in the application
+ * Includes admin classes for Tribes and Members (members editing inline to tribe)
+ * Use an anonymous or authenticated API call to retrieve statuses per tribe (using an authenticated account can help avoid rate limiting)
+ * Control the cache length per tribe (to avoid rate limiting on the Twitter api)
+ * Control the number of recent status updates retrieved per user per tribe
+ * Tribe view templates are configurable in the url's
+ * Simple user filtering of search and status results
+ * Template tags that convert @username mentions and links into actual hyperlinks
+ * Includes utility functions to prefetch status/search results into cache from a cronjob
+
+== Requirements ==
+
+ * Django 1.0 or greater
+ * [http://code.google.com/p/python-twitter/ Python Twitter API ]
+ * PYTZ (Python Time Zone Library)
+
+== Usage ==
+ * Check out the code
+ * Include the twtribes app in your project and add to your INSTALLED_APPS setting
+ * Requires a CACHE_BACKEND setting (but a file cache back end will work well for this.  The cache is to avoid API rate limiting)
+ * Include the twtribes urls in your URL configs
+ * Use the admin to set up a tribe/group
+
+== Todo's ==
+
+ * Needs testing
+ * Sign up views (allow users to register for groups)
+ * More testing
+ * AJAX views
+ * Better error messages/handling
