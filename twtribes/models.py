@@ -52,7 +52,7 @@ class ExcludedRegexp(models.Model):
     enabled = models.BooleanField(default=True)
     
     def search(self, some_text):
-        # assuming that this will used python's built in cache of regexp compilations
+        # assuming that this will use python's built in cache of regexp compilations
         if re.search(self.regexp, some_text, re.IGNORECASE):
             return True
         else:

@@ -54,7 +54,7 @@ def get_search_results(tribe, check_cache=True, filter_results=True):
         if filter_results:
             search_results = filter_search_results(tribe, search_results)
             
-        cache.set(tribe.slug, search_results, tribe.update_interval)
+        cache.set(tribe.slug+'_search', search_results, tribe.update_interval)
 
     return search_results
 
