@@ -6,15 +6,17 @@ from django.conf import settings
 from datetime import datetime
 
 from urllib2 import HTTPError
-import twitterext
+import twitter
+import calendar
+import email
 import pytz
 
 from models import *
 
 def status_sorter(s1, s2):
-    if s1.created_at_in_seconds < s2.created_at_in_seconds:
+    if s1["created_at_in_seconds"] < s2["created_at_in_seconds"]:
         return 1
-    elif s1.created_at_in_seconds > s2.created_at_in_seconds:
+    elif s1["created_at_in_seconds"] > s2["created_at_in_seconds"]:
         return -1
     return 0
 
@@ -31,11 +33,15 @@ def parse_twitter_http_error(e):
 
 def get_api(tribe):
     acc, pwd = tribe.master_account, tribe.master_password
-    if acc and pwd:
-        api = twitterext.SearchApi(username=acc, password=pwd)
+    
+    if settings.TWITTER_USE_OAUTH:
+        auth_method = twitter.oauth.OAuth(settings.TWITTER_OATH_TOKEN, settings.TWITTER_OATH_SECRET, settings.TWITTER_OATH_CONSUMER_KEY, settings.TWITTER_OATH_CONSUMER_SECRET)
+    elif acc and pwd:
+        auth_method = twitter.auth.UserPassAuth(username=acc, password=pwd)
     else:
-        api = twitterext.SearchApi()
-    return api
+        auth_method = twitter.auth.NoAuth()
+        
+    return twitter.api.Twitter(auth=auth_method)
 
 def get_search_results(tribe, check_cache=True, filter_results=True):
     """ This function is used to call the twitter api to seach for a tribe's interest terms
@@ -49,7 +55,7 @@ def get_search_results(tribe, check_cache=True, filter_results=True):
         
     if not search_results:
         api=get_api(tribe)
-        search_results = api.Search(" OR ".join([t.term for t in tribe.interestterm_set.all()]))
+        search_results = api.search(q=" OR ".join([t.term for t in tribe.interestterm_set.all()]))
         
         if filter_results:
             search_results = filter_search_results(tribe, search_results)
@@ -64,13 +70,13 @@ def filter_search_results(tribe, search_results):
     
     new_results = []
     # filter out excluded users
-    for result in search_results.results:
+    for result in search_results["results"]:
         # check to see if this user is in the excluded accounts list
-        if not tribe.excludeduser_set.filter(twitter_account=result.from_user):
-            if matches_no_regexps(tribe, result.text):
+        if not tribe.excludeduser_set.filter(twitter_account=result["from_user"]):
+            if matches_no_regexps(tribe, result["text"]):
                 new_results.append(result)
 
-    search_results.results = new_results
+    search_results["results"] = new_results
 
     return search_results
 
@@ -95,9 +101,9 @@ def cache_search(slug=None):
     for tribe in tribes:
         try:
             get_search_results(tribe, False)
-        except HTTPError, e:
+        except twitter.api.TwitterHTTPError, e:
             # an HTTPError means that the Twitter api returned an error, parse it and pass it back
-            error = parse_twitter_http_error(e)
+            error = parse_twitter_http_error(e.e)
             return error
             
 def get_status_updates(tribe, members, check_cache=True, filter_results=True):
@@ -116,22 +122,23 @@ def get_status_updates(tribe, members, check_cache=True, filter_results=True):
         status_list = []
         for m in members:
             try:
-                status_list.extend(api.GetUserTimeline(user=m.twitter_account, count=tribe.max_status))
+                status_list.extend(api.statuses.user_timeline(id=m.twitter_account, count=tribe.max_status))
             except HTTPError, e:
-                # watch for unknown user exceptions as we retrieve the status list
+                # watch for unknown user exceptions as we retrieve the status list, swallow the exception if we get them
                 if e.code != 404 and e.code != 401:
                     raise # reraise the exception if it's not an unknown user or the user is protected
                     
         # filter out by regular expression
         if filter_results:
-            status_list = [status for status in status_list if matches_no_regexps(tribe, status.text)]
+            status_list = [status for status in status_list if matches_no_regexps(tribe, status["text"])]
+                
+        # add a datetime to each status (better done on creation but will need to extend python twitter tools)
+        for s in status_list:
+            s["created_at_in_seconds"] = calendar.timegm(email.utils.parsedate(s["created_at"]))
+            s["created_at_as_datetime"] = pytz.utc.localize(datetime.fromtimestamp(s["created_at_in_seconds"])).astimezone(pytz.timezone(settings.TIME_ZONE))
         
         # sort the statuses 
         status_list.sort(status_sorter)
-        
-        # add a datetime to each status (better done on creation but will need to extend python-twitter)
-        for s in status_list:
-            s.created_at_as_datetime = pytz.utc.localize(datetime.fromtimestamp(s.created_at_in_seconds)).astimezone(pytz.timezone('US/Central'))
         
         cache.set(tribe.slug+'_status', status_list, tribe.update_interval)
         
@@ -148,9 +155,9 @@ def cache_tribes(slug=None):
     for tribe in tribes:
         try:
             get_status_updates(tribe, tribe.member_set.all(), False)
-        except HTTPError, e:
+        except twitter.api.TwitterHTTPError, e:
             # an HTTPError means that the Twitter api returned an error, parse it and pass it back
-            error = parse_twitter_http_error(e)
+            error = parse_twitter_http_error(e.e)
             return error
     
 def tribe(request, tribe_slug, tribe_template='twtribes/tribe.html', error_template='twtribes/tribe_error.html'):
@@ -159,20 +166,18 @@ def tribe(request, tribe_slug, tribe_template='twtribes/tribe.html', error_templ
     tribe = get_object_or_404(Tribe, slug__iexact=tribe_slug)
     members = tribe.member_set.order_by('twitter_account')
     
-    # initialize the API, using the master tribe username and password
-    # using the username and password for a tribe allows for API rate limit lifting at Twitter    
     try:
         status_list = get_status_updates(tribe, members)
         if request.GET and 'filter' in request.GET:
             f = request.GET['filter']
             f_upper = f.upper()
-            status_list = [s for s in status_list if s.text.upper().find(f_upper) > -1 or s.user.screen_name.upper().find(f_upper) > -1]
+            status_list = [s for s in status_list if s["text"].upper().find(f_upper) > -1 or s["user"]["screen_name"].upper().find(f_upper) > -1]
         else:
             f = None
                             
-    except HTTPError, e:
+    except twitter.api.TwitterHTTPError, e:
         # an HTTPError means that the Twitter api returned an error, parse it and return it to an error template
-        error = parse_twitter_http_error(e)
+        error = parse_twitter_http_error(e.e)
          
         return render_to_response(error_template,
             { 'error' : error, 'exception' : e }, 
@@ -192,17 +197,17 @@ def tribe_search(request, tribe_slug, tribe_template='twtribes/tribe_search.html
     # using the username and password for a tribe allows for API rate limit lifting at Twitter
     try:
         search_results = get_search_results(tribe)
-        results = search_results.results
+        results = search_results["results"]
         if request.GET and 'filter' in request.GET:
             f = request.GET['filter']
             f_upper = f.upper()
-            results = [s for s in results if s.text.upper().find(f_upper) > -1 or s.from_user.upper().find(f_upper) > -1]
+            results = [s for s in results if s["text"].upper().find(f_upper) > -1 or s["from_user"].upper().find(f_upper) > -1]
         else:
             f = None
             
-    except HTTPError, e:
+    except twitter.api.TwitterHTTPError, e:
         # an HTTPError means that the Twitter api returned an error, parse it and return it to an error template
-        error = parse_twitter_http_error(e)
+        error = parse_twitter_http_error(e.e)
 
         return render_to_response(error_template,
             { 'error' : error, 'exception' : e }, 
