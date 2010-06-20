@@ -14,6 +14,7 @@ NOTE: There is no current stable release yet.
  * Includes sample templates in the application
  * Includes admin classes for Tribes and Members (members editing inline to tribe)
  * Use an anonymous or authenticated API call to retrieve statuses per tribe (using an authenticated account can help avoid rate limiting)
+	* Now includes simple OAuth support via django settings
  * Control the cache length per tribe (to avoid rate limiting on the Twitter api)
  * Control the number of recent status updates retrieved per user per tribe
  * Tribe view templates are configurable in the url's
@@ -24,7 +25,7 @@ NOTE: There is no current stable release yet.
 == Requirements ==
 
  * Django 1.0 or greater
- * [http://code.google.com/p/python-twitter/ Python Twitter API ]
+ * [http://mike.verdone.ca/twitter/ Python Twitter Tools ]
  * PYTZ (Python Time Zone Library)
 
 == Usage ==
