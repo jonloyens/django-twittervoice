@@ -9,6 +9,7 @@ NOTE: There is no current stable release yet.
 
 == Features ==
 
+ * NEW: each 'tribe' can have filtered 'interest pages' in addition to a global search of interest terms
  * Add unlimited user accounts to a 'tribe'
  * Add unlimited search terms to each 'tribe'
  * Includes sample templates in the application
