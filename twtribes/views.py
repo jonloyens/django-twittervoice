@@ -43,24 +43,35 @@ def get_api(tribe):
         
     return twitter.api.Twitter(auth=auth_method)
 
-def get_search_results(tribe, check_cache=True, filter_results=True):
+def get_search_results(tribe, page=None, check_cache=True, filter_results=True):
     """ This function is used to call the twitter api to seach for a tribe's interest terms
         either from a view or in a cronjob to cache the interest search in advance
+        
+        Can also be called wtih a page object to build the results for a page (i.e. a group of interest terms)
+        
         Note: there is also the utility function 'cache_search' that will prefetch all tribes status updates"""
     
     if check_cache:
-        search_results = cache.get(tribe.slug+'_search')
+        search_results = cache.get(tribe.slug+'_search'+ ("_"+page.slug) if page else "" )
     else:
         search_results = None
         
     if not search_results:
         api=get_api(tribe)
-        search_results = api.search(q=" OR ".join([t.term for t in tribe.interestterm_set.all()]))
+        
+        if page:
+            query = '"'+'" OR "'.join([t.term for t in page.terms.all()])+'"'
+        else:
+            query = '"'+'" OR "'.join([t.term for t in tribe.interestterm_set.all()])+'"'
+        
+        print query
+        
+        search_results = api.search(q=query)
         
         if filter_results:
             search_results = filter_search_results(tribe, search_results)
             
-        cache.set(tribe.slug+'_search', search_results, tribe.update_interval)
+        cache.set(tribe.slug+'_search'+ ("_"+page.slug) if page else "", search_results, tribe.update_interval)
 
     return search_results
 
@@ -88,19 +99,24 @@ def matches_no_regexps(tribe, text_to_check):
             return False
     return True    
     
-def cache_search(slug=None):
+def cache_search(slug=None, page_slug=None):
     """ Function to be called in a cronjob to cache the search results for interest terms
         for all tribes or one tribe dependent on parameters
+        
+        Can also be used to cache an individual interest page if the correct slug is provided
         
         Calling with slug set to None will retrieve all tribes """
     if slug:
         tribes = Tribe.objects.filter(slug=slug)
+        if page_slug:
+            page = Page.objects.filter(slug=page_slug, tribe=tribes[0])
     else:
         tribes = Tribe.objects.all()
+        page = None
 
     for tribe in tribes:
         try:
-            get_search_results(tribe, False)
+            get_search_results(tribe, page, False)
         except twitter.api.TwitterHTTPError, e:
             # an HTTPError means that the Twitter api returned an error, parse it and pass it back
             error = parse_twitter_http_error(e.e)
@@ -187,16 +203,22 @@ def tribe(request, tribe_slug, tribe_template='twtribes/tribe.html', error_templ
         { 'tribe' : tribe, 'members' : members, 'status_list' : status_list, 'filter' : f }, 
         context_instance=RequestContext(request))
         
-def tribe_search(request, tribe_slug, tribe_template='twtribes/tribe_search.html', error_template='twtribes/tribe_error.html'):
-    """ Django view function that displays search results of tribe interest terms 
+def tribe_search(request, tribe_slug, page_slug=None, tribe_template='twtribes/tribe_search.html', page_template='twtribes/tribe_page.html', error_template='twtribes/tribe_error.html'):
+    """ Django view function that displays search results of tribe interest terms or a page of interest terms
     """
     tribe = get_object_or_404(Tribe, slug__iexact=tribe_slug)
     members = tribe.member_set.order_by('twitter_account')
 
+    if page_slug:
+        page = get_object_or_404(Page, slug__iexact=page_slug)
+    else:
+        page = None
+
     # initialize the API, using the master tribe username and password
     # using the username and password for a tribe allows for API rate limit lifting at Twitter
+    # NEW: You should look into using a single sign on OAuth token in settings instead of simple auth clear text passwords
     try:
-        search_results = get_search_results(tribe)
+        search_results = get_search_results(tribe, page)
         results = search_results["results"]
         if request.GET and 'filter' in request.GET:
             f = request.GET['filter']
@@ -213,6 +235,6 @@ def tribe_search(request, tribe_slug, tribe_template='twtribes/tribe_search.html
             { 'error' : error, 'exception' : e }, 
             context_instance=RequestContext(request))
 
-    return render_to_response(tribe_template,
-        { 'tribe' : tribe, 'members' : members, 'search' : search_results, 'results' : results, 'filter' : f }, 
+    return render_to_response(page_template if page else tribe_template,
+        { 'tribe' : tribe, 'members' : members, 'search' : search_results, 'results' : results, 'filter' : f, 'page' : page }, 
         context_instance=RequestContext(request))

@@ -24,6 +24,18 @@ class InterestTerm(models.Model):
     
     def __unicode__(self):
         return self.term
+        
+class Page(models.Model):
+    """A page of grouped interest terms for the tribe"""
+    slug = models.SlugField(unique=True)
+    title = models.CharField(blank=True, max_length=100)
+    description = models.TextField(blank=True)
+
+    tribe = models.ForeignKey(Tribe)
+    terms = models.ManyToManyField(InterestTerm)
+
+    def __unicode__(self):
+        return self.slug
 
 class Member(models.Model):
     """A twitter user account that's a member of a tribe"""

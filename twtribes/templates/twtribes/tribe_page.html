@@ -5,7 +5,7 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 
-	<title>Twitter Tribe: {{ tribe.name }}</title>
+	<title>Twitter Tribe: {{ tribe.name }} - Page {{ page.title }}</title>
 	
 </head>
 
@@ -27,15 +27,15 @@
         </ul>
         
         <div class='status_list'>
-            <h2>Members' Status</h2>
+            <h2>{{ page.title }}:</h2>
+            <p>{{ page.description }}</p>
             <ul>
-                {% for s in status_list %}
+                {% for s in results %}
                 <li>
                     <ul>
-                        <li class='profile_image'><img src='{{s.user.profile_image_url}}'/></li>
-                        <li class='user'><a href='http://www.twitter.com/{{s.user.screen_name}}'>@{{ s.user.screen_name }}</a> - {{s.user.name}}</li>
-                        <li class='status'>{{s.text}}</li>
-                        <li class='date'>{{s.created_at}}</li>
+                        <li class='status'><p>{{s.text|safe}}</p><span class='date'>{{s.created_at_as_datetime|timesince}} ago</span></li>
+                        <li class='profile_image'><a href='http://www.twitter.com/{{s.from_user}}'><img width='48' src='{{s.profile_image_url}}'/></a></li>
+                        <li class='user'><a href='http://www.twitter.com/{{s.from_user}}'>@{{ s.from_user }}</a></li>
                     </ul>
                 </li>
                 {% endfor %}
@@ -52,3 +52,4 @@
     </div>
 </body>
 </html>
+

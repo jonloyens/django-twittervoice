@@ -16,6 +16,16 @@
         <form action="." method="get" accept-charset="utf-8">
             <p><label for="filter">Filter Results:</label><input type="text" name="filter" value="{{filter}}" id=""><input type="submit" value="Continue &rarr;"></p>
         </form>
+        
+        <h2>Interest Pages</h2>
+        <ul>
+            {% for page in tribe.page_set.all %}
+            <li>
+                <a href="{% url show_tribe_page tribe.slug page.slug %}">{{ page.title }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+        
         <div class='status_list'>
             <h2>Tribe Interest Terms:</h2>
             <ul>

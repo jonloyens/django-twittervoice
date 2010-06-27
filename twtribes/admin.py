@@ -22,6 +22,11 @@ class ExcludedUserInlineAdmin(admin.TabularInline):
     
 class ExcludedRegexpInlineAdmin(admin.TabularInline):
     model=ExcludedRegexp
+
+class PageAdmin(admin.ModelAdmin):
+    list_display = ('slug','title')
+
+admin.site.register(Page, PageAdmin)
     
 class TribeAdmin(admin.ModelAdmin):
     list_display = ('name',)
