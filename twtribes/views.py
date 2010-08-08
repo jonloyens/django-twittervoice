@@ -31,7 +31,7 @@ def parse_twitter_http_error(e):
         error = str(e)
     return error
 
-def get_api(tribe):
+def get_api(tribe, domain="api.twitter.com"):
     acc, pwd = tribe.master_account, tribe.master_password
     
     if settings.TWITTER_USE_OAUTH:
@@ -41,7 +41,7 @@ def get_api(tribe):
     else:
         auth_method = twitter.auth.NoAuth()
         
-    return twitter.api.Twitter(auth=auth_method)
+    return twitter.api.Twitter(auth=auth_method, domain=domain)
 
 def get_search_results(tribe, page=None, check_cache=True, filter_results=True):
     """ This function is used to call the twitter api to seach for a tribe's interest terms
@@ -57,7 +57,7 @@ def get_search_results(tribe, page=None, check_cache=True, filter_results=True):
         search_results = None
         
     if not search_results:
-        api=get_api(tribe)
+        api=get_api(tribe, "search.twitter.com")
         
         if page:
             query = '"'+'" OR "'.join([t.term for t in page.terms.all()])+'"'
