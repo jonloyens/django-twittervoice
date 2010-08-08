@@ -16,6 +16,13 @@ NOTE: There is no current stable release yet.
  * Includes admin classes for Tribes and Members (members editing inline to tribe)
  * Use an anonymous or authenticated API call to retrieve statuses per tribe (using an authenticated account can help avoid rate limiting)
 	* Now includes simple OAuth support via django settings
+		* NOTE: to use OAUTH set the following settings:
+			TWITTER_USE_OAUTH = True
+			TWITTER_OATH_TOKEN = "your token"
+			TWITTER_OATH_SECRET = "your secret"
+			TWITTER_OATH_CONSUMER_KEY = "your consumer key"
+			TWITTER_OATH_CONSUMER_SECRET = "your consumer secret"
+			
  * Control the cache length per tribe (to avoid rate limiting on the Twitter api)
  * Control the number of recent status updates retrieved per user per tribe
  * Tribe view templates are configurable in the url's
@@ -25,8 +32,21 @@ NOTE: There is no current stable release yet.
 
 == Requirements ==
 
- * Django 1.0 or greater
+ * Django 1.2 or greater
  * [http://mike.verdone.ca/twitter/ Python Twitter Tools ]
+	
+		NOTE: You may have to make the following changes to Python Twitter Tools to use OAuth:
+		
+			* download the twitter tools source and modify the twitter/oath.py
+			* add import sha
+			* change the line: 
+				
+				signature = hmac.new(key, message, hashlib.sha1).digest().encode('base64')[:-1] 
+				
+				to 
+				
+				signature = hmac.new(key, message, sha).digest().encode('base64')[:-1]
+
  * PYTZ (Python Time Zone Library)
 
 == Usage ==
