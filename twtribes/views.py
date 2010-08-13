@@ -34,7 +34,7 @@ def parse_twitter_http_error(e):
 def get_api(tribe, domain="api.twitter.com"):
     acc, pwd = tribe.master_account, tribe.master_password
     
-    if settings.TWITTER_USE_OAUTH:
+    if hasattr(settings, "TWITTER_USE_OAUTH") and settings.TWITTER_USE_OAUTH:
         auth_method = twitter.oauth.OAuth(settings.TWITTER_OATH_TOKEN, settings.TWITTER_OATH_SECRET, settings.TWITTER_OATH_CONSUMER_KEY, settings.TWITTER_OATH_CONSUMER_SECRET)
     elif acc and pwd:
         auth_method = twitter.auth.UserPassAuth(username=acc, password=pwd)
@@ -71,6 +71,14 @@ def get_search_results(tribe, page=None, check_cache=True, filter_results=True):
         
         if filter_results:
             search_results = filter_search_results(tribe, search_results)
+        
+        # add a datetime to each status (better done on creation but will need to extend python twitter tools)
+        for s in search_results["results"]:
+            s["created_at_in_seconds"] = calendar.timegm(email.utils.parsedate(s["created_at"]))
+            s["created_at_as_datetime"] = datetime.fromtimestamp(s["created_at_in_seconds"])
+            
+            if hasattr(settings, "ADJUST_TWITTER_TIMEZONE")  and settings.ADJUST_TWITTER_TIMEZONE:
+                s["created_at_as_datetime"] = pytz.utc.localize(s["created_at_as_datetime"]).astimezone(pytz.timezone(settings.TIME_ZONE))
             
         cache.set(tribe.slug+'_search'+ ("_"+page.slug) if page else "", search_results, tribe.update_interval)
         
@@ -154,7 +162,10 @@ def get_status_updates(tribe, members, check_cache=True, filter_results=True):
         # add a datetime to each status (better done on creation but will need to extend python twitter tools)
         for s in status_list:
             s["created_at_in_seconds"] = calendar.timegm(email.utils.parsedate(s["created_at"]))
-            s["created_at_as_datetime"] = pytz.utc.localize(datetime.fromtimestamp(s["created_at_in_seconds"])).astimezone(pytz.timezone(settings.TIME_ZONE))
+            s["created_at_as_datetime"] = datetime.fromtimestamp(s["created_at_in_seconds"])
+            
+            if hasattr(settings, "ADJUST_TWITTER_TIMEZONE") and settings.ADJUST_TWITTER_TIMEZONE:
+                s["created_at_as_datetime"] = pytz.utc.localize(s["created_at_as_datetime"]).astimezone(pytz.timezone(settings.TIME_ZONE))
         
         # sort the statuses 
         status_list.sort(status_sorter)
