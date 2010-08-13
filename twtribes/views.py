@@ -5,7 +5,7 @@ from django.conf import settings
 
 from datetime import datetime
 
-from urllib2 import HTTPError
+from urllib2 import HTTPError, URLError
 import twitter
 import calendar
 import email
@@ -57,22 +57,23 @@ def get_search_results(tribe, page=None, check_cache=True, filter_results=True):
         search_results = None
         
     if not search_results:
-        api=get_api(tribe, "search.twitter.com")
+        try:
+            api=get_api(tribe, "search.twitter.com")
+        except URLError, e:
+            pass # swallow potential servname/node name errors from the twitter api. TODO: Should probably log this
         
         if page:
             query = '"'+'" OR "'.join([t.term for t in page.terms.all()])+'"'
         else:
             query = '"'+'" OR "'.join([t.term for t in tribe.interestterm_set.all()])+'"'
         
-        print query
-        
-        search_results = api.search(q=query)
+        search_results = api.search(q=query, rpp=100)
         
         if filter_results:
             search_results = filter_search_results(tribe, search_results)
             
         cache.set(tribe.slug+'_search'+ ("_"+page.slug) if page else "", search_results, tribe.update_interval)
-
+        
     return search_results
 
 def filter_search_results(tribe, search_results):
@@ -139,10 +140,12 @@ def get_status_updates(tribe, members, check_cache=True, filter_results=True):
         for m in members:
             try:
                 status_list.extend(api.statuses.user_timeline(id=m.twitter_account, count=tribe.max_status))
-            except HTTPError, e:
+            except twitter.api.TwitterHTTPError, e:
                 # watch for unknown user exceptions as we retrieve the status list, swallow the exception if we get them
-                if e.code != 404 and e.code != 401:
+                if e.e.code != 404 and e.e.code != 401:
                     raise # reraise the exception if it's not an unknown user or the user is protected
+            except URLError, e:
+                pass # swallow potential servname/node name errors from the twitter api. TODO: Should probably log this
                     
         # filter out by regular expression
         if filter_results:
@@ -194,7 +197,6 @@ def tribe(request, tribe_slug, tribe_template='twtribes/tribe.html', error_templ
     except twitter.api.TwitterHTTPError, e:
         # an HTTPError means that the Twitter api returned an error, parse it and return it to an error template
         error = parse_twitter_http_error(e.e)
-         
         return render_to_response(error_template,
             { 'error' : error, 'exception' : e }, 
             context_instance=RequestContext(request))
